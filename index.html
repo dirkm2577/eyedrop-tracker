@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eyedrop Tracker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.3.0/luxon.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .day {
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 10px;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .times {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+        .time {
+            display: flex;
+            align-items: center;
+        }
+        input[type="checkbox"] {
+            margin-right: 5px;
+            width: 20px;
+            height: 20px;
+        }
+        label {
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Eyedrop Tracker</h1>
+    <div id="app"></div>
+
+    <script>
+        const DateTime = luxon.DateTime;
+
+        const app = document.getElementById('app');
+        const storedData = JSON.parse(localStorage.getItem('eyedropData')) || {};
+
+        function createDayElement(date) {
+            const formattedDate = date.toFormat('yyyy-MM-dd');
+            const dayData = storedData[formattedDate] || Array(8).fill(false);
+            const dayElement = document.createElement('div');
+            dayElement.className = 'day';
+            dayElement.innerHTML = `
+                <div class="day-header">
+                    <h2>${date.toFormat('LLL dd, yyyy')}</h2>
+                    <span>${dayData.filter(Boolean).length}/8</span>
+                </div>
+                <div class="times">
+                    ${dayData.map((checked, index) => `
+                        <div class="time">
+                            <input type="checkbox" id="${formattedDate}-${index}" ${checked ? 'checked' : ''}>
+                            <label for="${formattedDate}-${index}">${index + 1}</label>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            dayElement.addEventListener('change', (e) => {
+                if (e.target.type === 'checkbox') {
+                    const [date, index] = e.target.id.split('-');
+                    storedData[date] = storedData[date] || Array(8).fill(false);
+                    storedData[date][index] = e.target.checked;
+                    localStorage.setItem('eyedropData', JSON.stringify(storedData));
+                    updateDayCount(dayElement, storedData[date]);
+                }
+            });
+
+            return dayElement;
+        }
+
+        function updateDayCount(dayElement, dayData) {
+            const countElement = dayElement.querySelector('.day-header span');
+            countElement.textContent = `${dayData.filter(Boolean).length}/8`;
+        }
+
+        function renderApp() {
+            app.innerHTML = '';
+            const today = DateTime.now();
+            for (let i = -3; i <= 3; i++) {
+                const date = today.plus({ days: i });
+                app.appendChild(createDayElement(date));
+            }
+        }
+
+        renderApp();
+    </script>
+</body>
+</html>
